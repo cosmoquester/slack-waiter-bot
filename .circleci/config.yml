@@ -1,0 +1,88 @@
+version: 2.1
+
+executors:
+  go-executor:
+    working_directory: ~/go-template
+    docker:
+      - image: circleci/golang:1.16
+
+commands:
+  install-modules:
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+
+      - run:
+          name: Go module & linter download
+          command: |
+            go mod download
+            go get -u golang.org/x/lint/golint
+
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+
+jobs:
+  build-and-run:
+    executor: go-executor
+
+    steps:
+      - install-modules
+
+      - run:
+          name: Build Application
+          command: go build
+
+      - run:
+          name: Run Application
+          command: ./go-template
+
+  check-linting:
+    executor: go-executor
+
+    steps:
+      - install-modules
+
+      - run:
+          name: Check Linting
+          command: |
+            [[ -z $(go fmt ./...) ]] && true || false
+            go vet ./...
+            golint -set_exit_status ./...
+
+  run-test:
+    executor: go-executor
+
+    steps:
+      - install-modules
+
+      - run:
+          name: Run tests and coverage
+          command: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+
+      - run:
+          name: Upload coverage to Codecov
+          command: bash <(curl -s https://codecov.io/bash)
+
+  go-report-upload:
+      executor: go-executor
+
+      steps:
+        - run:
+            name: Update Go Report
+            command: curl -XPOST https://goreportcard.com/checks -F repo="github.com/cosmoquester/go-template"
+
+workflows:
+  main:
+    jobs:
+      - build-and-run
+      - check-linting
+      - run-test
+      - go-report-upload:
+          filters:
+            branches:
+              only: /master/
