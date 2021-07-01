@@ -2,7 +2,7 @@ version: 2.1
 
 executors:
   go-executor:
-    working_directory: ~/go-template
+    working_directory: ~/slack-waiter-bot
     docker:
       - image: circleci/golang:1.16
 
@@ -39,7 +39,7 @@ jobs:
 
       - run:
           name: Run Application
-          command: ./go-template
+          command: ./slack-waiter-bot
 
   check-linting:
     executor: go-executor
@@ -74,7 +74,7 @@ jobs:
       steps:
         - run:
             name: Update Go Report
-            command: curl -XPOST https://goreportcard.com/checks -F repo="github.com/cosmoquester/go-template"
+            command: curl -XPOST https://goreportcard.com/checks -F repo="github.com/cosmoquester/slack-waiter-bot"
 
 workflows:
   main:
