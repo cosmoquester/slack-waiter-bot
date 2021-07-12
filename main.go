@@ -57,7 +57,16 @@ func main() {
 			innerEvent := eventsAPIEvent.InnerEvent
 			switch ev := innerEvent.Data.(type) {
 			case *slackevents.AppMentionEvent:
-				api.PostMessage(ev.Channel, slack.MsgOptionText("Hello World!", false), slack.MsgOptionTS(ev.TimeStamp))
+				headerText := slack.NewTextBlockObject("plain_text", "메뉴판", false, false)
+				headerBlock := slack.NewHeaderBlock(headerText)
+
+				addMenuBtnTxt := slack.NewTextBlockObject("plain_text", "메뉴 추가", false, false)
+				addMenuBtn := slack.NewButtonBlockElement("menu_add", "menu_add", addMenuBtnTxt)
+				terminateBtnTxt := slack.NewTextBlockObject("plain_text", "종료", false, false)
+				terminateBtn := slack.NewButtonBlockElement("terminate", "terminate", terminateBtnTxt)
+
+				ButtonBlock := slack.NewActionBlock("button_block", addMenuBtn, terminateBtn)
+				api.PostMessage(ev.Channel, slack.MsgOptionBlocks(headerBlock, slack.NewDividerBlock(), ButtonBlock), slack.MsgOptionTS(ev.TimeStamp))
 			}
 		}
 	})
