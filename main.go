@@ -13,10 +13,10 @@ import (
 
 func main() {
 	// "Bot User OAuth Access Token" which starts with "xoxb-"
-	slack_bot_token := os.Getenv("SLACK_BOT_USER_TOKEN")
+	slackBotToken := os.Getenv("SLACK_BOT_USER_TOKEN")
 	signingSecret := os.Getenv("SLACK_SIGNING_SECRET")
 
-	api := slack.New(slack_bot_token)
+	api := slack.New(slackBotToken)
 
 	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
