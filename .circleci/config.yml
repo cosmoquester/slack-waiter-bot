@@ -27,7 +27,7 @@ commands:
             - "/go/pkg/mod"
 
 jobs:
-  build-and-run:
+  build:
     executor: go-executor
 
     steps:
@@ -36,10 +36,6 @@ jobs:
       - run:
           name: Build Application
           command: go build
-
-      - run:
-          name: Run Application
-          command: ./slack-waiter-bot
 
   check-linting:
     executor: go-executor
@@ -79,7 +75,7 @@ jobs:
 workflows:
   main:
     jobs:
-      - build-and-run
+      - build
       - check-linting
       - run-test
       - go-report-upload:
