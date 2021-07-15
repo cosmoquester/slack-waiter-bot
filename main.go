@@ -12,11 +12,26 @@ import (
 	"github.com/slack-go/slack/slackevents"
 )
 
+// Action IDs
+const (
+	SelectMenuByUser = "select_menu_by_user"
+	SubmitMenu       = "submit_menu"
+	AddMenuButton    = "add_menu"
+	TerminateMenu    = "terminate_menu"
+)
+
+// Block IDs
+const (
+	SubmitMenuBlock       = "submit_menu_block"
+	MenuButtonsBlock      = "menu_buttons_block"
+	SelectMenuByUserBlock = "select_menu_by_user_block"
+)
+
 func showAddMenuModal(channelID, originalTs string) slack.ModalViewRequest {
 	menuNameText := slack.NewTextBlockObject("plain_text", "MENU", false, false)
 	menuNamePlaceholder := slack.NewTextBlockObject("plain_text", "ex) 회전초밥 32pc", false, false)
-	menuNameElement := slack.NewPlainTextInputBlockElement(menuNamePlaceholder, "menu_submit")
-	menuName := slack.NewInputBlock("menu_submit_block", menuNameText, menuNameElement)
+	menuNameElement := slack.NewPlainTextInputBlockElement(menuNamePlaceholder, SubmitMenu)
+	menuName := slack.NewInputBlock(SubmitMenuBlock, menuNameText, menuNameElement)
 
 	var modalRequest slack.ModalViewRequest
 	modalRequest.Type = slack.ViewType("modal")
@@ -83,11 +98,11 @@ func main() {
 				headerBlock := slack.NewHeaderBlock(headerText)
 
 				addMenuBtnTxt := slack.NewTextBlockObject("plain_text", "메뉴 추가", false, false)
-				addMenuBtn := slack.NewButtonBlockElement("menu_add", "menu_add", addMenuBtnTxt)
+				addMenuBtn := slack.NewButtonBlockElement(AddMenuButton, AddMenuButton, addMenuBtnTxt)
 				terminateBtnTxt := slack.NewTextBlockObject("plain_text", "종료", false, false)
-				terminateBtn := slack.NewButtonBlockElement("terminate", "terminate", terminateBtnTxt)
+				terminateBtn := slack.NewButtonBlockElement(TerminateMenu, TerminateMenu, terminateBtnTxt)
 
-				ButtonBlock := slack.NewActionBlock("menu_buttons", addMenuBtn, terminateBtn)
+				ButtonBlock := slack.NewActionBlock(MenuButtonsBlock, addMenuBtn, terminateBtn)
 				api.PostMessage(ev.Channel, slack.MsgOptionBlocks(headerBlock, slack.NewDividerBlock(), ButtonBlock), slack.MsgOptionTS(ev.TimeStamp))
 			}
 		}
@@ -103,13 +118,13 @@ func main() {
 
 		switch payload.Type {
 		case slack.InteractionTypeBlockActions:
-			if len(payload.ActionCallback.BlockActions) != 1 || payload.ActionCallback.BlockActions[0].BlockID != "menu_buttons" {
+			if len(payload.ActionCallback.BlockActions) != 1 || payload.ActionCallback.BlockActions[0].BlockID != MenuButtonsBlock {
 				break
 			}
 			switch payload.ActionCallback.BlockActions[0].ActionID {
-			case "menu_add":
+			case AddMenuButton:
 				api.OpenView(payload.TriggerID, showAddMenuModal(payload.Channel.ID, payload.Message.Timestamp))
-			case "terminate":
+			case TerminateMenu:
 				terminateText := slack.NewTextBlockObject("plain_text", "END Order", false, false)
 				terminateBlock := slack.NewSectionBlock(terminateText, nil, nil)
 				api.UpdateMessage(payload.Channel.ID, payload.Message.Timestamp, slack.MsgOptionBlocks(terminateBlock))
@@ -119,11 +134,12 @@ func main() {
 			callbackInfo := strings.Split(payload.View.CallbackID, "\t")
 			channel := callbackInfo[0]
 			originalPostTimeStamp := callbackInfo[1]
-			menuString := payload.View.State.Values["menu_submit_block"]["menu_submit"].Value
+			menuString := payload.View.State.Values[SubmitMenuBlock][SubmitMenu].Value
 
 			menuText := slack.NewTextBlockObject("plain_text", menuString, false, false)
-			menuBlock := slack.NewSectionBlock(menuText, nil, nil)
-			api.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(menuBlock))
+			menuUserSelectBlock := slack.NewInputBlock(SelectMenuByUserBlock, menuText, slack.NewOptionsMultiSelectBlockElement("multi_users_select", nil, SelectMenuByUser))
+
+			api.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(menuUserSelectBlock))
 		}
 
 	})
