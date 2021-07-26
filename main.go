@@ -132,8 +132,12 @@ func main() {
 
 						blocks := []slack.Block{}
 						for _, curBlock := range msg.Blocks.BlockSet {
-							blockType := curBlock.BlockType()
-							if blockType != slack.MBTSection && blockType != slack.MBTAction {
+							switch curBlock.BlockType() {
+							case slack.MBTAction:
+							case slack.MBTSection:
+								curBlock.(*slack.SectionBlock).Accessory = nil
+								blocks = append(blocks, curBlock)
+							default:
 								blocks = append(blocks, curBlock)
 							}
 						}
