@@ -22,8 +22,9 @@ const (
 
 // Block IDs
 const (
-	SubmitMenuBlock  = "submit_menu_block"
-	MenuButtonsBlock = "menu_buttons_block"
+	SubmitMenuBlock        = "submit_menu_block"
+	MenuButtonsBlock       = "menu_buttons_block"
+	MenuSelectContextBlock = "menu_select_context_block"
 )
 
 func showAddMenuModal(channelID, originalTs string) slack.ModalViewRequest {
@@ -116,17 +117,62 @@ func main() {
 		}
 
 		switch payload.Type {
+
 		case slack.InteractionTypeBlockActions:
-			if len(payload.ActionCallback.BlockActions) != 1 || payload.ActionCallback.BlockActions[0].BlockID != MenuButtonsBlock {
-				break
-			}
-			switch payload.ActionCallback.BlockActions[0].ActionID {
-			case AddMenuButton:
-				api.OpenView(payload.TriggerID, showAddMenuModal(payload.Channel.ID, payload.Message.Timestamp))
-			case TerminateMenu:
-				terminateText := slack.NewTextBlockObject("plain_text", "END Order", false, false)
-				terminateBlock := slack.NewSectionBlock(terminateText, nil, nil)
-				api.UpdateMessage(payload.Channel.ID, payload.Message.Timestamp, slack.MsgOptionBlocks(terminateBlock))
+			for _, blockAction := range payload.ActionCallback.BlockActions {
+				switch blockAction.ActionID {
+				case AddMenuButton:
+					api.OpenView(payload.TriggerID, showAddMenuModal(payload.Channel.ID, payload.Message.Timestamp))
+				case TerminateMenu:
+					messages, _, _, _ := api.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
+					for _, msg := range messages {
+						if msg.Timestamp != payload.Message.Timestamp {
+							continue
+						}
+
+						blocks := []slack.Block{}
+						for _, curBlock := range msg.Blocks.BlockSet {
+							blockType := curBlock.BlockType()
+							if blockType != slack.MBTSection && blockType != slack.MBTAction {
+								blocks = append(blocks, curBlock)
+							}
+						}
+						api.UpdateMessage(payload.Channel.ID, msg.Timestamp, slack.MsgOptionBlocks(blocks...))
+					}
+
+				case SelectMenuByUser:
+					profile, _ := api.GetUserProfile(&slack.GetUserProfileParameters{UserID: payload.User.ID})
+
+					messages, _, _, _ := api.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
+					for _, msg := range messages {
+						if msg.Timestamp != payload.Message.Timestamp {
+							continue
+						}
+
+						var block *slack.ContextBlock
+						var blockID string
+						var blockIndex int
+						for i, curBlock := range msg.Blocks.BlockSet {
+							if curBlock.BlockType() == slack.MBTContext {
+								contextBlock := curBlock.(*slack.ContextBlock)
+								if contextBlock.BlockID[len(contextBlock.BlockID)-len(blockAction.Value):] == blockAction.Value {
+									block = curBlock.(*slack.ContextBlock)
+									blockID = contextBlock.BlockID
+									blockIndex = i
+								}
+							}
+						}
+
+						elements := block.ContextElements.Elements
+						elements = make([]slack.MixedElement, len(elements)+1)
+						copy(elements, block.ContextElements.Elements)
+						elements[len(elements)-2] = slack.NewImageBlockElement(profile.Image32, profile.RealName)
+						elements[len(elements)-1] = slack.NewTextBlockObject("plain_text", fmt.Sprintf("%d Selected", len(elements)-1), false, false)
+						msg.Blocks.BlockSet[blockIndex] = slack.NewContextBlock(blockID, elements...)
+
+						api.UpdateMessage(payload.Channel.ID, msg.Timestamp, slack.MsgOptionBlocks(msg.Blocks.BlockSet...))
+					}
+				}
 			}
 
 		case slack.InteractionTypeViewSubmission:
@@ -145,11 +191,13 @@ func main() {
 				menuText := slack.NewTextBlockObject("plain_text", menuString, false, false)
 				selectText := slack.NewTextBlockObject("plain_text", "Select", false, false)
 				menuUserSelectBlock := slack.NewSectionBlock(menuText, nil, slack.NewAccessory(slack.NewButtonBlockElement(SelectMenuByUser, menuString, selectText)))
+				menuSelectContextBlock := slack.NewContextBlock(MenuSelectContextBlock+"_"+menuString, slack.NewTextBlockObject("plain_text", "No Selected", false, false))
 
 				// Append New Menu Block
-				blocks := make([]slack.Block, len(msg.Blocks.BlockSet)+1)
+				blocks := make([]slack.Block, len(msg.Blocks.BlockSet)+2)
 				copy(blocks, msg.Blocks.BlockSet[:len(msg.Blocks.BlockSet)-2])
-				blocks[len(blocks)-3] = menuUserSelectBlock
+				blocks[len(blocks)-4] = menuUserSelectBlock
+				blocks[len(blocks)-3] = menuSelectContextBlock
 				copy(blocks[len(blocks)-2:], msg.Blocks.BlockSet[len(msg.Blocks.BlockSet)-2:])
 
 				api.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(blocks...))
