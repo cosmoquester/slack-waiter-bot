@@ -140,7 +140,7 @@ func main() {
 				case TerminateMenuID:
 					messages, _, _, _ := api.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
 					for _, msg := range messages {
-						if msg.Timestamp != payload.Message.Timestamp {
+						if msg.Timestamp != payload.Message.Timestamp || msg.ParentUserId != payload.User.ID {
 							continue
 						}
 
