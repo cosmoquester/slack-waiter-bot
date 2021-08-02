@@ -9,6 +9,9 @@ import (
 	"strings"
 	"sync"
 
+	"math/rand"
+	"time"
+
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 )
@@ -64,6 +67,18 @@ func main() {
 		return
 	}
 	botUserID := bot.UserID
+
+	emojiMap, err := api.GetEmoji()
+	if err != nil {
+		_ = fmt.Errorf("INVALID EMOTION PERMISSION")
+	}
+	emojiList := make([]string, len(emojiMap))
+	i := 0
+	for k := range emojiMap {
+		emojiList[i] = ":" + k + ": "
+		i++
+	}
+	rand.Seed(time.Now().Unix())
 
 	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
@@ -228,7 +243,7 @@ func main() {
 				}
 
 				menuString := payload.View.State.Values[SubmitMenuBlockID][SubmitMenuID].Value
-				menuText := slack.NewTextBlockObject("plain_text", menuString, false, false)
+				menuText := slack.NewTextBlockObject("plain_text", emojiList[rand.Intn(len(emojiList))]+menuString, true, false)
 				selectText := slack.NewTextBlockObject("plain_text", "Select", false, false)
 				menuUserSelectBlock := slack.NewSectionBlock(menuText, nil, slack.NewAccessory(slack.NewButtonBlockElement(SelectMenuByUserID, menuString, selectText)))
 				menuSelectContextBlock := slack.NewContextBlock(MenuSelectContextBlockID+menuString, slack.NewTextBlockObject("plain_text", "0 Selected", false, false))
