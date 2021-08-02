@@ -55,6 +55,13 @@ func main() {
 
 	api := slack.New(slackBotToken)
 
+	bot, err := api.AuthTest()
+	if err != nil {
+		_ = fmt.Errorf("INVALID TOKEN ERROR")
+		return
+	}
+	botUserID := bot.UserID
+
 	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -94,6 +101,13 @@ func main() {
 			innerEvent := eventsAPIEvent.InnerEvent
 			switch ev := innerEvent.Data.(type) {
 			case *slackevents.AppMentionEvent:
+				messages, _, _, _ := api.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: ev.Channel, Timestamp: ev.TimeStamp})
+				for _, msg := range messages {
+					if msg.User == botUserID {
+						return
+					}
+				}
+
 				headerText := slack.NewTextBlockObject("plain_text", "메뉴판", false, false)
 				headerBlock := slack.NewHeaderBlock(headerText)
 
