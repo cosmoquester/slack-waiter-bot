@@ -168,12 +168,25 @@ func main() {
 						}
 
 						elements := block.ContextElements.Elements
-						elements = make([]slack.MixedElement, len(elements)+1)
-						copy(elements, block.ContextElements.Elements)
-						elements[len(elements)-2] = slack.NewImageBlockElement(profile.Image32, profile.RealName)
+						isExist := false
+						for i, curElement := range elements[:len(elements)-1] {
+							switch element := curElement.(type) {
+							case *slack.ImageBlockElement:
+								if element.AltText == profile.RealName {
+									elements = append(elements[:i], elements[i+1:]...)
+									isExist = true
+									break
+								}
+							}
+						}
+						if !isExist {
+							elements = make([]slack.MixedElement, len(elements)+1)
+							copy(elements, block.ContextElements.Elements)
+							elements[len(elements)-2] = slack.NewImageBlockElement(profile.Image32, profile.RealName)
+						}
+
 						elements[len(elements)-1] = slack.NewTextBlockObject("plain_text", fmt.Sprintf("%d Selected", len(elements)-1), false, false)
 						msg.Blocks.BlockSet[blockIndex] = slack.NewContextBlock(blockID, elements...)
-
 						api.UpdateMessage(payload.Channel.ID, msg.Timestamp, slack.MsgOptionBlocks(msg.Blocks.BlockSet...))
 					}
 				}
@@ -195,7 +208,7 @@ func main() {
 				menuText := slack.NewTextBlockObject("plain_text", menuString, false, false)
 				selectText := slack.NewTextBlockObject("plain_text", "Select", false, false)
 				menuUserSelectBlock := slack.NewSectionBlock(menuText, nil, slack.NewAccessory(slack.NewButtonBlockElement(SelectMenuByUser, menuString, selectText)))
-				menuSelectContextBlock := slack.NewContextBlock(MenuSelectContextBlock+"_"+menuString, slack.NewTextBlockObject("plain_text", "No Selected", false, false))
+				menuSelectContextBlock := slack.NewContextBlock(MenuSelectContextBlock+"_"+menuString, slack.NewTextBlockObject("plain_text", "0 Selected", false, false))
 
 				// Append New Menu Block
 				blocks := make([]slack.Block, len(msg.Blocks.BlockSet)+2)
