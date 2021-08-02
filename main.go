@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -26,6 +27,8 @@ const (
 	MenuButtonsBlockID       = "menu_buttons_block"
 	MenuSelectContextBlockID = "menu_select_context_block/"
 )
+
+var messageUpdateMutex = &sync.Mutex{}
 
 func showAddMenuModal(channelID, originalTs string) slack.ModalViewRequest {
 	menuNameText := slack.NewTextBlockObject("plain_text", "MENU", false, false)
@@ -138,6 +141,8 @@ func main() {
 				case AddMenuButtonID:
 					api.OpenView(payload.TriggerID, showAddMenuModal(payload.Channel.ID, payload.Message.Timestamp))
 				case TerminateMenuID:
+					messageUpdateMutex.Lock()
+					defer messageUpdateMutex.Unlock()
 					messages, _, _, _ := api.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
 					for _, msg := range messages {
 						if msg.Timestamp != payload.Message.Timestamp || msg.ParentUserId != payload.User.ID {
@@ -161,6 +166,8 @@ func main() {
 				case SelectMenuByUserID:
 					profile, _ := api.GetUserProfile(&slack.GetUserProfileParameters{UserID: payload.User.ID})
 
+					messageUpdateMutex.Lock()
+					defer messageUpdateMutex.Unlock()
 					messages, _, _, _ := api.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
 					for _, msg := range messages {
 						if msg.Timestamp != payload.Message.Timestamp {
@@ -211,6 +218,8 @@ func main() {
 			channel := callbackInfo[0]
 			originalPostTimeStamp := callbackInfo[1]
 
+			messageUpdateMutex.Lock()
+			defer messageUpdateMutex.Unlock()
 			messages, _, _, _ := api.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: channel, Timestamp: originalPostTimeStamp})
 
 			for _, msg := range messages {
