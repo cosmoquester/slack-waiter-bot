@@ -114,7 +114,7 @@ func main() {
 				addMenuBtnTxt := slack.NewTextBlockObject("plain_text", "메뉴 추가", false, false)
 				addMenuBtn := slack.NewButtonBlockElement(AddMenuButtonID, AddMenuButtonID, addMenuBtnTxt)
 				terminateBtnTxt := slack.NewTextBlockObject("plain_text", "종료", false, false)
-				terminateBtn := slack.NewButtonBlockElement(TerminateMenuID, TerminateMenuID, terminateBtnTxt)
+				terminateBtn := slack.NewButtonBlockElement(TerminateMenuID, TerminateMenuID, terminateBtnTxt).WithStyle(slack.StyleDanger)
 
 				ButtonBlock := slack.NewActionBlock(MenuButtonsBlockID, addMenuBtn, terminateBtn)
 				api.PostMessage(ev.Channel, slack.MsgOptionBlocks(headerBlock, slack.NewDividerBlock(), ButtonBlock), slack.MsgOptionTS(ev.TimeStamp))
