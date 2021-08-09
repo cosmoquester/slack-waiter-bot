@@ -2,7 +2,9 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -46,4 +48,17 @@ func GetEmojiList(client *slack.Client) ([]string, error) {
 		i++
 	}
 	return emojiList, nil
+}
+
+// WriteAddMenuMetadata returns private metadata for add menu view
+func WriteAddMenuMetadata(channelID string, timestamp string) string {
+	return fmt.Sprintf("%s\t%s", channelID, timestamp)
+}
+
+// ParseAddMenuMetadata returns parsed informations of add menu view
+func ParseAddMenuMetadata(privateMetadata string) (string, string) {
+	callbackInfo := strings.Split(privateMetadata, "\t")
+	channel := callbackInfo[0]
+	originalPostTimeStamp := callbackInfo[1]
+	return channel, originalPostTimeStamp
 }

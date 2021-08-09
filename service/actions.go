@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"slack-waiter-bot/ids"
-	"strings"
 	"sync"
 
 	"github.com/slack-go/slack"
@@ -24,7 +23,8 @@ func AddMenu(ah ActionHandler, payload slack.InteractionCallback) {
 	modalRequest.Title = slack.NewTextBlockObject("plain_text", "메뉴를 골라주세옹!", false, false)
 	modalRequest.Close = slack.NewTextBlockObject("plain_text", "Close", false, false)
 	modalRequest.Submit = slack.NewTextBlockObject("plain_text", "Submit", false, false)
-	modalRequest.CallbackID = fmt.Sprintf("%s\t%s", payload.Channel.ID, payload.Message.Timestamp)
+	modalRequest.CallbackID = ids.SubmitMenu
+	modalRequest.PrivateMetadata = WriteAddMenuMetadata(payload.Channel.ID, payload.Message.Timestamp)
 	modalRequest.Blocks = slack.Blocks{
 		BlockSet: []slack.Block{
 			menuName,
@@ -111,9 +111,7 @@ func SelectMenuByUser(ah ActionHandler, payload slack.InteractionCallback, selec
 
 // SubmitMenuAdd handles when user submit menu add view
 func SubmitMenuAdd(ah ActionHandler, payload slack.InteractionCallback) {
-	callbackInfo := strings.Split(payload.View.CallbackID, "\t")
-	channel := callbackInfo[0]
-	originalPostTimeStamp := callbackInfo[1]
+	channel, originalPostTimeStamp := ParseAddMenuMetadata(payload.View.PrivateMetadata)
 
 	messageUpdateMutex.Lock()
 	defer messageUpdateMutex.Unlock()
