@@ -13,10 +13,17 @@ var messageUpdateMutex = &sync.Mutex{}
 
 // AddMenu handles when user clicks addmenu button
 func AddMenu(ah ActionHandler, payload slack.InteractionCallback) {
+	// Menu Input Block
 	menuNameText := slack.NewTextBlockObject("plain_text", "MENU", false, false)
 	menuNamePlaceholder := slack.NewTextBlockObject("plain_text", "ex) 회전초밥 32pc", false, false)
-	menuNameElement := slack.NewPlainTextInputBlockElement(menuNamePlaceholder, ids.SubmitMenu)
-	menuName := slack.NewInputBlock(ids.SubmitMenuBlock, menuNameText, menuNameElement)
+	menuNameElement := slack.NewPlainTextInputBlockElement(menuNamePlaceholder, ids.SubmitMenuInput)
+	menuName := slack.NewInputBlock(ids.SubmitMenuInputBlock, menuNameText, menuNameElement)
+
+	// User Select Block
+	userSelectText := slack.NewTextBlockObject("plain_text", "Selecting People", false, false)
+	multiUserSelect := slack.NewOptionsMultiSelectBlockElement("multi_users_select", nil, ids.SubmitMenuPeople)
+	multiUserSelect.InitialUsers = []string{payload.User.ID}
+	userSelect := slack.NewInputBlock(ids.SubmitMenuSelectPeopleBlock, userSelectText, multiUserSelect)
 
 	var modalRequest slack.ModalViewRequest
 	modalRequest.Type = slack.ViewType("modal")
@@ -27,7 +34,7 @@ func AddMenu(ah ActionHandler, payload slack.InteractionCallback) {
 	modalRequest.PrivateMetadata = WriteAddMenuMetadata(payload.Channel.ID, payload.Message.Timestamp)
 	modalRequest.Blocks = slack.Blocks{
 		BlockSet: []slack.Block{
-			menuName,
+			menuName, userSelect,
 		},
 	}
 
@@ -61,13 +68,54 @@ func TerminateMenu(ah ActionHandler, payload slack.InteractionCallback) {
 
 // SelectMenuByUser handles when user select a menu
 func SelectMenuByUser(ah ActionHandler, payload slack.InteractionCallback, selectedMenuName string) {
-	profile, _ := ah.Client.GetUserProfile(&slack.GetUserProfileParameters{UserID: payload.User.ID})
+	ToggleMenuOfUser(ah.Client, payload.User.ID, payload.Channel.ID, payload.Message.Timestamp, selectedMenuName)
+}
+
+// SubmitMenuAdd handles when user submit menu add view
+func SubmitMenuAdd(ah ActionHandler, payload slack.InteractionCallback) {
+	channel, originalPostTimeStamp := ParseAddMenuMetadata(payload.View.PrivateMetadata)
 
 	messageUpdateMutex.Lock()
 	defer messageUpdateMutex.Unlock()
-	messages, _, _, _ := ah.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
+	messages, _, _, _ := ah.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: channel, Timestamp: originalPostTimeStamp})
+
 	for _, msg := range messages {
-		if msg.Timestamp != payload.Message.Timestamp {
+		if msg.Timestamp != originalPostTimeStamp {
+			continue
+		}
+
+		menuString := payload.View.State.Values[ids.SubmitMenuInputBlock][ids.SubmitMenuInput].Value
+		menuText := slack.NewTextBlockObject("plain_text", ah.EmojiList[rand.Intn(len(ah.EmojiList))]+menuString, true, false)
+		selectText := slack.NewTextBlockObject("plain_text", "Select", false, false)
+		menuUserSelectBlock := slack.NewSectionBlock(menuText, nil, slack.NewAccessory(slack.NewButtonBlockElement(ids.SelectMenuByUser, menuString, selectText)))
+		menuSelectContextBlock := slack.NewContextBlock(ids.MenuSelectContextBlock+menuString, slack.NewTextBlockObject("plain_text", "0 Selected", false, false))
+
+		// Append New Menu Block
+		blocks := make([]slack.Block, len(msg.Blocks.BlockSet)+2)
+		copy(blocks, msg.Blocks.BlockSet[:len(msg.Blocks.BlockSet)-2])
+		blocks[len(blocks)-4] = menuUserSelectBlock
+		blocks[len(blocks)-3] = menuSelectContextBlock
+		copy(blocks[len(blocks)-2:], msg.Blocks.BlockSet[len(msg.Blocks.BlockSet)-2:])
+
+		ah.Client.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(blocks...))
+
+		// Select default selected users
+		selectedUsers := payload.View.State.Values[ids.SubmitMenuSelectPeopleBlock][ids.SubmitMenuPeople].SelectedUsers
+		for _, user := range selectedUsers {
+			go ToggleMenuOfUser(ah.Client, user, channel, originalPostTimeStamp, menuString)
+		}
+	}
+}
+
+// ToggleMenuOfUser select or de-select menu of the user
+func ToggleMenuOfUser(client *slack.Client, userID string, channelID string, TimeStamp string, selectedMenuName string) {
+	profile, _ := client.GetUserProfile(&slack.GetUserProfileParameters{UserID: userID})
+
+	messageUpdateMutex.Lock()
+	defer messageUpdateMutex.Unlock()
+	messages, _, _, _ := client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: channelID, Timestamp: TimeStamp})
+	for _, msg := range messages {
+		if msg.Timestamp != TimeStamp {
 			continue
 		}
 
@@ -105,37 +153,6 @@ func SelectMenuByUser(ah ActionHandler, payload slack.InteractionCallback, selec
 
 		elements[len(elements)-1] = slack.NewTextBlockObject("plain_text", fmt.Sprintf("%d Selected", len(elements)-1), false, false)
 		msg.Blocks.BlockSet[blockIndex] = slack.NewContextBlock(blockID, elements...)
-		ah.Client.UpdateMessage(payload.Channel.ID, msg.Timestamp, slack.MsgOptionBlocks(msg.Blocks.BlockSet...))
+		client.UpdateMessage(channelID, msg.Timestamp, slack.MsgOptionBlocks(msg.Blocks.BlockSet...))
 	}
-}
-
-// SubmitMenuAdd handles when user submit menu add view
-func SubmitMenuAdd(ah ActionHandler, payload slack.InteractionCallback) {
-	channel, originalPostTimeStamp := ParseAddMenuMetadata(payload.View.PrivateMetadata)
-
-	messageUpdateMutex.Lock()
-	defer messageUpdateMutex.Unlock()
-	messages, _, _, _ := ah.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: channel, Timestamp: originalPostTimeStamp})
-
-	for _, msg := range messages {
-		if msg.Timestamp != originalPostTimeStamp {
-			continue
-		}
-
-		menuString := payload.View.State.Values[ids.SubmitMenuBlock][ids.SubmitMenu].Value
-		menuText := slack.NewTextBlockObject("plain_text", ah.EmojiList[rand.Intn(len(ah.EmojiList))]+menuString, true, false)
-		selectText := slack.NewTextBlockObject("plain_text", "Select", false, false)
-		menuUserSelectBlock := slack.NewSectionBlock(menuText, nil, slack.NewAccessory(slack.NewButtonBlockElement(ids.SelectMenuByUser, menuString, selectText)))
-		menuSelectContextBlock := slack.NewContextBlock(ids.MenuSelectContextBlock+menuString, slack.NewTextBlockObject("plain_text", "0 Selected", false, false))
-
-		// Append New Menu Block
-		blocks := make([]slack.Block, len(msg.Blocks.BlockSet)+2)
-		copy(blocks, msg.Blocks.BlockSet[:len(msg.Blocks.BlockSet)-2])
-		blocks[len(blocks)-4] = menuUserSelectBlock
-		blocks[len(blocks)-3] = menuSelectContextBlock
-		copy(blocks[len(blocks)-2:], msg.Blocks.BlockSet[len(msg.Blocks.BlockSet)-2:])
-
-		ah.Client.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(blocks...))
-	}
-
 }
