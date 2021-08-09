@@ -86,7 +86,7 @@ func (ah ActionHandler) HandleAction(w http.ResponseWriter, r *http.Request) {
 		}
 	case slack.InteractionTypeViewSubmission:
 		switch payload.View.CallbackID {
-		case ids.SubmitMenu:
+		case ids.SubmitMenuCallback:
 			SubmitMenuAdd(ah, payload)
 		}
 	}

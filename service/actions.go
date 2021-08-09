@@ -23,7 +23,7 @@ func AddMenu(ah ActionHandler, payload slack.InteractionCallback) {
 	modalRequest.Title = slack.NewTextBlockObject("plain_text", "메뉴를 골라주세옹!", false, false)
 	modalRequest.Close = slack.NewTextBlockObject("plain_text", "Close", false, false)
 	modalRequest.Submit = slack.NewTextBlockObject("plain_text", "Submit", false, false)
-	modalRequest.CallbackID = ids.SubmitMenu
+	modalRequest.CallbackID = ids.SubmitMenuCallback
 	modalRequest.PrivateMetadata = WriteAddMenuMetadata(payload.Channel.ID, payload.Message.Timestamp)
 	modalRequest.Blocks = slack.Blocks{
 		BlockSet: []slack.Block{

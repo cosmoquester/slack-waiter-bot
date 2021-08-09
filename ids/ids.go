@@ -14,3 +14,8 @@ const (
 	MenuButtonsBlock       = "menu_buttons_block"
 	MenuSelectContextBlock = "menu_select_context_block/"
 )
+
+// Callback IDs
+const (
+	SubmitMenuCallback = "submit_menu_callback"
+)
