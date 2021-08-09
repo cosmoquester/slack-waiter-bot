@@ -20,11 +20,11 @@ func main() {
 		_ = fmt.Errorf("INVALID TOKEN ERROR")
 		return
 	}
-
 	emojiList, err := service.GetEmojiList(client)
 	if err != nil {
 		_ = fmt.Errorf("INVALID EMOTION PERMISSION")
 	}
+
 	rand.Seed(time.Now().Unix())
 
 	eventHandler := service.EventHandler{
