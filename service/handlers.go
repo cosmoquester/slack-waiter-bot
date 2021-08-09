@@ -11,27 +11,22 @@ import (
 	"github.com/slack-go/slack/slackevents"
 )
 
-// EventHandler for handling slack events
-type EventHandler struct {
+// Handler for handling slack events and actions
+type Handler struct {
 	Client        *slack.Client
 	SigningSecret string
 	BotUserID     string
-}
-
-// ActionHandler for handling slack actions
-type ActionHandler struct {
-	Client    *slack.Client
-	EmojiList []string
+	EmojiList     []string
 }
 
 // HandleEvent is the function to handle events
-func (eh EventHandler) HandleEvent(w http.ResponseWriter, r *http.Request) {
+func (handler Handler) HandleEvent(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	sv, err := slack.NewSecretsVerifier(r.Header, eh.SigningSecret)
+	sv, err := slack.NewSecretsVerifier(r.Header, handler.SigningSecret)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -58,14 +53,14 @@ func (eh EventHandler) HandleEvent(w http.ResponseWriter, r *http.Request) {
 		innerEvent := eventsAPIEvent.InnerEvent
 		switch event := innerEvent.Data.(type) {
 		case *slackevents.AppMentionEvent:
-			HandleAppMentionEvent(event, eh)
+			HandleAppMentionEvent(event, handler)
 		}
 	}
 
 }
 
 // HandleAction is the function to handle actions
-func (ah ActionHandler) HandleAction(w http.ResponseWriter, r *http.Request) {
+func (handler Handler) HandleAction(w http.ResponseWriter, r *http.Request) {
 	var payload slack.InteractionCallback
 	err := json.Unmarshal([]byte(r.FormValue("payload")), &payload)
 	if err != nil {
@@ -77,17 +72,17 @@ func (ah ActionHandler) HandleAction(w http.ResponseWriter, r *http.Request) {
 		for _, blockAction := range payload.ActionCallback.BlockActions {
 			switch blockAction.ActionID {
 			case ids.AddMenu:
-				AddMenu(ah, payload)
+				AddMenu(handler, payload)
 			case ids.TerminateMenu:
-				TerminateMenu(ah, payload)
+				TerminateMenu(handler, payload)
 			case ids.SelectMenuByUser:
-				SelectMenuByUser(ah, payload, blockAction.Value)
+				SelectMenuByUser(handler, payload, blockAction.Value)
 			}
 		}
 	case slack.InteractionTypeViewSubmission:
 		switch payload.View.CallbackID {
 		case ids.SubmitMenuCallback:
-			SubmitMenuAdd(ah, payload)
+			SubmitMenuAdd(handler, payload)
 		}
 	}
 

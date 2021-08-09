@@ -11,7 +11,7 @@ import (
 var messageUpdateMutex = &sync.Mutex{}
 
 // AddMenu handles when user clicks addmenu button
-func AddMenu(ah ActionHandler, payload slack.InteractionCallback) {
+func AddMenu(handler Handler, payload slack.InteractionCallback) {
 	// Menu Input Block
 	menuNameText := slack.NewTextBlockObject("plain_text", "MENU", false, false)
 	menuNamePlaceholder := slack.NewTextBlockObject("plain_text", "ex) 회전초밥 32pc", false, false)
@@ -37,14 +37,14 @@ func AddMenu(ah ActionHandler, payload slack.InteractionCallback) {
 		},
 	}
 
-	ah.Client.OpenView(payload.TriggerID, modalRequest)
+	handler.Client.OpenView(payload.TriggerID, modalRequest)
 }
 
 // TerminateMenu handles when user clicks terminate button
-func TerminateMenu(ah ActionHandler, payload slack.InteractionCallback) {
+func TerminateMenu(handler Handler, payload slack.InteractionCallback) {
 	messageUpdateMutex.Lock()
 	defer messageUpdateMutex.Unlock()
-	messages, _, _, _ := ah.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
+	messages, _, _, _ := handler.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
 	for _, msg := range messages {
 		if msg.Timestamp != payload.Message.Timestamp || msg.ParentUserId != payload.User.ID {
 			continue
@@ -61,22 +61,22 @@ func TerminateMenu(ah ActionHandler, payload slack.InteractionCallback) {
 				blocks = append(blocks, curBlock)
 			}
 		}
-		ah.Client.UpdateMessage(payload.Channel.ID, msg.Timestamp, slack.MsgOptionBlocks(blocks...))
+		handler.Client.UpdateMessage(payload.Channel.ID, msg.Timestamp, slack.MsgOptionBlocks(blocks...))
 	}
 }
 
 // SelectMenuByUser handles when user select a menu
-func SelectMenuByUser(ah ActionHandler, payload slack.InteractionCallback, selectedMenuName string) {
-	ToggleMenuOfUser(ah.Client, payload.User.ID, payload.Channel.ID, payload.Message.Timestamp, selectedMenuName)
+func SelectMenuByUser(handler Handler, payload slack.InteractionCallback, selectedMenuName string) {
+	ToggleMenuOfUser(handler.Client, payload.User.ID, payload.Channel.ID, payload.Message.Timestamp, selectedMenuName)
 }
 
 // SubmitMenuAdd handles when user submit menu add view
-func SubmitMenuAdd(ah ActionHandler, payload slack.InteractionCallback) {
+func SubmitMenuAdd(handler Handler, payload slack.InteractionCallback) {
 	channel, originalPostTimeStamp := ParseAddMenuMetadata(payload.View.PrivateMetadata)
 
 	messageUpdateMutex.Lock()
 	defer messageUpdateMutex.Unlock()
-	messages, _, _, _ := ah.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: channel, Timestamp: originalPostTimeStamp})
+	messages, _, _, _ := handler.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: channel, Timestamp: originalPostTimeStamp})
 
 	for _, msg := range messages {
 		if msg.Timestamp != originalPostTimeStamp {
@@ -85,15 +85,15 @@ func SubmitMenuAdd(ah ActionHandler, payload slack.InteractionCallback) {
 
 		menuString := payload.View.State.Values[ids.SubmitMenuInputBlock][ids.SubmitMenuInput].Value
 		menuBoard := ParseMenuBlocks(msg.Blocks.BlockSet)
-		menuBoard.AddMenu(menuString, ah.EmojiList[rand.Intn(len(ah.EmojiList))])
+		menuBoard.AddMenu(menuString, handler.EmojiList[rand.Intn(len(handler.EmojiList))])
 
 		// Select default selected users
 		selectedUsers := payload.View.State.Values[ids.SubmitMenuSelectPeopleBlock][ids.SubmitMenuPeople].SelectedUsers
 		for _, user := range selectedUsers {
-			profile, _ := ah.Client.GetUserProfile(&slack.GetUserProfileParameters{UserID: user})
+			profile, _ := handler.Client.GetUserProfile(&slack.GetUserProfileParameters{UserID: user})
 			menuBoard.ToggleMenuByUser(profile, menuString)
 		}
-		ah.Client.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(menuBoard.ToBlocks()...))
+		handler.Client.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(menuBoard.ToBlocks()...))
 	}
 }
 
