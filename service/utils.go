@@ -1,6 +1,24 @@
 package service
 
-import "github.com/slack-go/slack"
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
+)
+
+// URLVerification when setting event URI
+func URLVerification(w http.ResponseWriter, body []byte) {
+	var r *slackevents.ChallengeResponse
+	err := json.Unmarshal([]byte(body), &r)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text")
+	w.Write([]byte(r.Challenge))
+}
 
 // AuthorizeSlack is the function to authorize with bot token and return client, bot user id
 func AuthorizeSlack(slackBotToken string) (*slack.Client, string, error) {

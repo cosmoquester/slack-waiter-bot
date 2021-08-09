@@ -4,7 +4,7 @@ package ids
 const (
 	SelectMenuByUser = "select_menu_by_user"
 	SubmitMenu       = "submit_menu"
-	AddMenuButton    = "add_menu"
+	AddMenu          = "add_menu"
 	TerminateMenu    = "terminate_menu"
 )
 
