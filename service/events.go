@@ -8,8 +8,15 @@ import (
 )
 
 // HandleAppMentionEvent handles when user mention bot
-func HandleAppMentionEvent(event *slackevents.AppMentionEvent, eh EventHandler) {
-	messages, _, _, _ := eh.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: event.Channel, Timestamp: event.TimeStamp})
+func HandleAppMentionEvent(ev *slackevents.AppMentionEvent, eh EventHandler) {
+	var timeStamp string
+	if ev.ThreadTimeStamp != "" {
+		timeStamp = ev.ThreadTimeStamp
+	} else {
+		timeStamp = ev.TimeStamp
+	}
+
+	messages, _, _, _ := eh.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: ev.Channel, Timestamp: timeStamp})
 	for _, msg := range messages {
 		if msg.User == eh.BotUserID {
 			return
@@ -26,5 +33,5 @@ func HandleAppMentionEvent(event *slackevents.AppMentionEvent, eh EventHandler) 
 
 	ButtonBlock := slack.NewActionBlock(ids.MenuButtonsBlock, addMenuBtn, terminateBtn)
 
-	eh.Client.PostMessage(event.Channel, slack.MsgOptionBlocks(headerBlock, slack.NewDividerBlock(), ButtonBlock), slack.MsgOptionTS(event.TimeStamp))
+	eh.Client.PostMessage(ev.Channel, slack.MsgOptionBlocks(headerBlock, slack.NewDividerBlock(), ButtonBlock), slack.MsgOptionTS(timeStamp))
 }
