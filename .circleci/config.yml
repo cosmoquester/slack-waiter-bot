@@ -64,6 +64,42 @@ jobs:
           name: Upload coverage to Codecov
           command: bash <(curl -s https://codecov.io/bash)
 
+  docker-image-build:
+    executor: go-executor
+
+    steps:
+      - checkout
+
+      - setup_remote_docker:
+          version: 20.10.6
+
+      - when:
+          condition:
+            equal: [ master, << pipeline.git.branch >>]
+
+          steps:
+            - run:
+                name: Docker Image Build and Push Latest
+                command: |
+                  DOCKER_IMAGE_NAME="$DOCKER_USER_NAME/slack-waiter-bot"
+                  docker build -t $DOCKER_IMAGE_NAME .
+                  echo $DOCKER_ACCESS_TOKEN | docker login --username $DOCKER_USER_NAME --password-stdin
+                  docker push $DOCKER_IMAGE_NAME
+      - when:
+          condition:
+            matches:
+              pattern: ".+"
+              value: << pipeline.git.tag >>
+
+          steps:
+            - run:
+                name: Docker Image Build and Push Tag
+                command: |
+                  DOCKER_IMAGE_NAME="$DOCKER_USER_NAME/slack-waiter-bot:$CIRCLE_TAG"
+                  docker build -t $DOCKER_IMAGE_NAME .
+                  echo $DOCKER_ACCESS_TOKEN | docker login --username $DOCKER_USER_NAME --password-stdin
+                  docker push $DOCKER_IMAGE_NAME
+
   go-report-upload:
       executor: go-executor
 
@@ -78,6 +114,14 @@ workflows:
       - build
       - check-linting
       - run-test
+      - docker-image-build:
+          context:
+            - Docker
+          filters:
+            tags:
+              only: /.+/
+            branches:
+              only: /master/
       - go-report-upload:
           filters:
             branches:
