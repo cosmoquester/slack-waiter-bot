@@ -27,18 +27,15 @@ func main() {
 
 	rand.Seed(time.Now().Unix())
 
-	eventHandler := service.EventHandler{
+	handler := service.Handler{
 		Client:        client,
 		SigningSecret: signingSecret,
 		BotUserID:     botUserID,
-	}
-	actionHandler := service.ActionHandler{
-		Client:    client,
-		EmojiList: emojiList,
+		EmojiList:     emojiList,
 	}
 
-	http.HandleFunc("/events", eventHandler.HandleEvent)
-	http.HandleFunc("/actions", actionHandler.HandleAction)
+	http.HandleFunc("/events", handler.HandleEvent)
+	http.HandleFunc("/actions", handler.HandleAction)
 
 	fmt.Println("[INFO] Server listening")
 	http.ListenAndServe(":3000", nil)
