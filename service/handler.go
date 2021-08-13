@@ -73,6 +73,8 @@ func (handler Handler) HandleAction(w http.ResponseWriter, r *http.Request) {
 			switch blockAction.ActionID {
 			case ids.AddMenu:
 				AddMenu(handler, payload)
+			case ids.DeleteMenu:
+				DeleteMenu(handler, payload)
 			case ids.TerminateMenu:
 				TerminateMenu(handler, payload)
 			case ids.SelectMenuByUser:
@@ -83,7 +85,10 @@ func (handler Handler) HandleAction(w http.ResponseWriter, r *http.Request) {
 		switch payload.View.CallbackID {
 		case ids.SubmitMenuCallback:
 			SubmitMenuAdd(handler, payload)
+		case ids.SubmitDeleteMenuCallback:
+			SubmitMenuDelete(handler, payload)
 		}
+
 	}
 
 }
