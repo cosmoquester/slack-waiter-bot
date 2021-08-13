@@ -56,7 +56,7 @@ func ParseMenuBlocks(blocks []slack.Block) *MenuBoard {
 // AddMenu adds the menu
 func (mb *MenuBoard) AddMenu(menuName string, emoji string) {
 	menuText := slack.NewTextBlockObject("plain_text", emoji+menuName, true, false)
-	selectText := slack.NewTextBlockObject("plain_text", "Select", false, false)
+	selectText := slack.NewTextBlockObject("plain_text", "👆", false, false)
 	menuUserSelectBlock := slack.NewSectionBlock(menuText, nil, slack.NewAccessory(slack.NewButtonBlockElement(ids.SelectMenuByUser, menuName, selectText)))
 	menuSelectContextBlock := slack.NewContextBlock(ids.MenuSelectContextBlock+menuName, slack.NewTextBlockObject("plain_text", "0 Selected", false, false))
 	mb.Menus = append(mb.Menus, Menu{

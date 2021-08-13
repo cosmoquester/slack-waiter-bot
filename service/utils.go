@@ -50,13 +50,13 @@ func GetEmojiList(client *slack.Client) ([]string, error) {
 	return emojiList, nil
 }
 
-// WriteAddMenuMetadata returns private metadata for add menu view
-func WriteAddMenuMetadata(channelID string, timestamp string) string {
+// WriteCallbackMetadata returns private metadata for add menu view
+func WriteCallbackMetadata(channelID string, timestamp string) string {
 	return fmt.Sprintf("%s\t%s", channelID, timestamp)
 }
 
-// ParseAddMenuMetadata returns parsed informations of add menu view
-func ParseAddMenuMetadata(privateMetadata string) (string, string) {
+// ParseCallbackMetadata returns parsed informations of add menu view
+func ParseCallbackMetadata(privateMetadata string) (string, string) {
 	callbackInfo := strings.Split(privateMetadata, "\t")
 	channel := callbackInfo[0]
 	originalPostTimeStamp := callbackInfo[1]

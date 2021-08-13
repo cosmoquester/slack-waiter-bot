@@ -23,15 +23,17 @@ func HandleAppMentionEvent(handler *slackevents.AppMentionEvent, eh Handler) {
 		}
 	}
 
-	headerText := slack.NewTextBlockObject("plain_text", "메뉴판", false, false)
+	headerText := slack.NewTextBlockObject("plain_text", "Menu", false, false)
 	headerBlock := slack.NewHeaderBlock(headerText)
 
-	addMenuBtnTxt := slack.NewTextBlockObject("plain_text", "메뉴 추가", false, false)
+	addMenuBtnTxt := slack.NewTextBlockObject("plain_text", "➕", false, false)
 	addMenuBtn := slack.NewButtonBlockElement(ids.AddMenu, ids.AddMenu, addMenuBtnTxt)
-	terminateBtnTxt := slack.NewTextBlockObject("plain_text", "종료", false, false)
+	deleteMenuBtnTxt := slack.NewTextBlockObject("plain_text", "➖", false, false)
+	deleteMenuBtn := slack.NewButtonBlockElement(ids.DeleteMenu, ids.DeleteMenu, deleteMenuBtnTxt)
+	terminateBtnTxt := slack.NewTextBlockObject("plain_text", "🚫", false, false)
 	terminateBtn := slack.NewButtonBlockElement(ids.TerminateMenu, ids.TerminateMenu, terminateBtnTxt).WithStyle(slack.StyleDanger)
 
-	ButtonBlock := slack.NewActionBlock(ids.MenuButtonsBlock, addMenuBtn, terminateBtn)
+	ButtonBlock := slack.NewActionBlock(ids.MenuButtonsBlock, addMenuBtn, deleteMenuBtn, terminateBtn)
 
 	eh.Client.PostMessage(handler.Channel, slack.MsgOptionBlocks(headerBlock, slack.NewDividerBlock(), ButtonBlock), slack.MsgOptionTS(timeStamp))
 }

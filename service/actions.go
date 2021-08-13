@@ -30,10 +30,49 @@ func AddMenu(handler Handler, payload slack.InteractionCallback) {
 	modalRequest.Close = slack.NewTextBlockObject("plain_text", "Close", false, false)
 	modalRequest.Submit = slack.NewTextBlockObject("plain_text", "Submit", false, false)
 	modalRequest.CallbackID = ids.SubmitMenuCallback
-	modalRequest.PrivateMetadata = WriteAddMenuMetadata(payload.Channel.ID, payload.Message.Timestamp)
+	modalRequest.PrivateMetadata = WriteCallbackMetadata(payload.Channel.ID, payload.Message.Timestamp)
 	modalRequest.Blocks = slack.Blocks{
 		BlockSet: []slack.Block{
 			menuName, userSelect,
+		},
+	}
+
+	handler.Client.OpenView(payload.TriggerID, modalRequest)
+}
+
+func DeleteMenu(handler Handler, payload slack.InteractionCallback) {
+	var message slack.Message
+	messages, _, _, _ := handler.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
+	for _, msg := range messages {
+		if msg.Timestamp == payload.Message.Timestamp {
+			message = msg
+		}
+	}
+
+	// Set menu options
+	menuBoard := ParseMenuBlocks(message.Blocks.BlockSet)
+	menuOptions := []*slack.OptionBlockObject{}
+	for _, menu := range menuBoard.Menus {
+		optionBlockText := slack.NewTextBlockObject("plain_text", menu.MenuName, false, false)
+		optionBlockObject := slack.NewOptionBlockObject(menu.MenuName, optionBlockText, nil)
+		menuOptions = append(menuOptions, optionBlockObject)
+	}
+
+	// Menu Input Block
+	menuListText := slack.NewTextBlockObject("plain_text", "⚠️ 메뉴와 선택한 사람들이 모두 사라지니 조심해주세요 ⚠️", false, false)
+	menuListElement := slack.NewRadioButtonsBlockElement(ids.SubmitMenuInput, menuOptions...)
+	menuList := slack.NewInputBlock(ids.SubmitMenuDeleteBlock, menuListText, menuListElement)
+
+	var modalRequest slack.ModalViewRequest
+	modalRequest.Type = slack.ViewType("modal")
+	modalRequest.Title = slack.NewTextBlockObject("plain_text", "삭제할 메뉴를 골라주세옹!", false, false)
+	modalRequest.Close = slack.NewTextBlockObject("plain_text", "Close", false, false)
+	modalRequest.Submit = slack.NewTextBlockObject("plain_text", "Submit", false, false)
+	modalRequest.CallbackID = ids.SubmitDeleteMenuCallback
+	modalRequest.PrivateMetadata = WriteCallbackMetadata(payload.Channel.ID, payload.Message.Timestamp)
+	modalRequest.Blocks = slack.Blocks{
+		BlockSet: []slack.Block{
+			menuList,
 		},
 	}
 
@@ -72,7 +111,7 @@ func SelectMenuByUser(handler Handler, payload slack.InteractionCallback, select
 
 // SubmitMenuAdd handles when user submit menu add view
 func SubmitMenuAdd(handler Handler, payload slack.InteractionCallback) {
-	channel, originalPostTimeStamp := ParseAddMenuMetadata(payload.View.PrivateMetadata)
+	channel, originalPostTimeStamp := ParseCallbackMetadata(payload.View.PrivateMetadata)
 
 	messageUpdateMutex.Lock()
 	defer messageUpdateMutex.Unlock()
@@ -83,16 +122,36 @@ func SubmitMenuAdd(handler Handler, payload slack.InteractionCallback) {
 			continue
 		}
 
-		menuString := payload.View.State.Values[ids.SubmitMenuInputBlock][ids.SubmitMenuInput].Value
+		menuName := payload.View.State.Values[ids.SubmitMenuInputBlock][ids.SubmitMenuInput].Value
 		menuBoard := ParseMenuBlocks(msg.Blocks.BlockSet)
-		menuBoard.AddMenu(menuString, handler.EmojiList[rand.Intn(len(handler.EmojiList))])
+		menuBoard.AddMenu(menuName, handler.EmojiList[rand.Intn(len(handler.EmojiList))])
 
 		// Select default selected users
 		selectedUsers := payload.View.State.Values[ids.SubmitMenuSelectPeopleBlock][ids.SubmitMenuPeople].SelectedUsers
 		for _, user := range selectedUsers {
 			profile, _ := handler.Client.GetUserProfile(&slack.GetUserProfileParameters{UserID: user})
-			menuBoard.ToggleMenuByUser(profile, menuString)
+			menuBoard.ToggleMenuByUser(profile, menuName)
 		}
+		handler.Client.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(menuBoard.ToBlocks()...))
+	}
+}
+
+func SubmitMenuDelete(handler Handler, payload slack.InteractionCallback) {
+	channel, originalPostTimeStamp := ParseCallbackMetadata(payload.View.PrivateMetadata)
+
+	messageUpdateMutex.Lock()
+	defer messageUpdateMutex.Unlock()
+	messages, _, _, _ := handler.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: channel, Timestamp: originalPostTimeStamp})
+
+	for _, msg := range messages {
+		if msg.Timestamp != originalPostTimeStamp {
+			continue
+		}
+
+		menuName := payload.View.State.Values[ids.SubmitMenuDeleteBlock][ids.SubmitMenuInput].SelectedOption.Value
+		menuBoard := ParseMenuBlocks(msg.Blocks.BlockSet)
+		menuBoard.DeleteMenu(menuName)
+
 		handler.Client.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(menuBoard.ToBlocks()...))
 	}
 }
