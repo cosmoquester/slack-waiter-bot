@@ -67,6 +67,7 @@ func (mb *MenuBoard) AddMenu(menuName string, emoji string) {
 	mb.MenuNameIndexMap[menuName] = len(mb.MenuNameIndexMap)
 }
 
+// DeleteMenu deletes the menu
 func (mb *MenuBoard) DeleteMenu(menuName string) {
 	menuIndex, ok := mb.MenuNameIndexMap[menuName]
 	if !ok {

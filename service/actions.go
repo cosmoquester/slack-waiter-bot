@@ -40,6 +40,7 @@ func AddMenu(handler Handler, payload slack.InteractionCallback) {
 	handler.Client.OpenView(payload.TriggerID, modalRequest)
 }
 
+// DeleteMenu handles when user clicks delete menu button
 func DeleteMenu(handler Handler, payload slack.InteractionCallback) {
 	var message slack.Message
 	messages, _, _, _ := handler.Client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: payload.Channel.ID, Timestamp: payload.Message.Timestamp})
@@ -136,6 +137,7 @@ func SubmitMenuAdd(handler Handler, payload slack.InteractionCallback) {
 	}
 }
 
+// SubmitMenuDelete handles when user submit menu delete view
 func SubmitMenuDelete(handler Handler, payload slack.InteractionCallback) {
 	channel, originalPostTimeStamp := ParseCallbackMetadata(payload.View.PrivateMetadata)
 
