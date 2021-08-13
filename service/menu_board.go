@@ -67,6 +67,22 @@ func (mb *MenuBoard) AddMenu(menuName string, emoji string) {
 	mb.MenuNameIndexMap[menuName] = len(mb.MenuNameIndexMap)
 }
 
+func (mb *MenuBoard) DeleteMenu(menuName string) {
+	menuIndex, ok := mb.MenuNameIndexMap[menuName]
+	if !ok {
+		return
+	}
+
+	mb.Menus = append(mb.Menus[:menuIndex], mb.Menus[menuIndex+1:]...)
+	delete(mb.MenuNameIndexMap, menuName)
+	for name, index := range mb.MenuNameIndexMap {
+		if index > menuIndex {
+			mb.MenuNameIndexMap[name]--
+		}
+	}
+
+}
+
 // ToggleMenuByUser select or unselect menu
 func (mb *MenuBoard) ToggleMenuByUser(profile *slack.UserProfile, menuName string) {
 	statusBock := mb.Menus[mb.MenuNameIndexMap[menuName]].StatusBlock
