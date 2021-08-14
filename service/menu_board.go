@@ -132,6 +132,9 @@ func (mb *MenuBoard) ToggleMenuByUser(profile *slack.UserProfile, menuName strin
 				prevElements[len(prevElements)-1] = curElements[0]
 				statusBlocks[j].ContextElements.Elements = curElements[1:]
 			}
+			if len(statusBlocks[len(statusBlocks)-1].ContextElements.Elements) == 0 {
+				statusBlocks = statusBlocks[:len(statusBlocks)-1]
+			}
 			break
 		}
 	}
