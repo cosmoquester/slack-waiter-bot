@@ -27,7 +27,7 @@ func main() {
 
 	rand.Seed(time.Now().Unix())
 
-	handler := service.Handler{
+	handler := &service.Handler{
 		Client:        client,
 		SigningSecret: signingSecret,
 		BotUserID:     botUserID,

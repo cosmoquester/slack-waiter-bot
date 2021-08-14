@@ -11,7 +11,7 @@ import (
 var messageUpdateMutex = &sync.Mutex{}
 
 // AddMenu handles when user clicks addmenu button
-func AddMenu(handler Handler, payload slack.InteractionCallback) {
+func AddMenu(handler *Handler, payload *slack.InteractionCallback) {
 	// Menu Input Block
 	menuNameText := slack.NewTextBlockObject("plain_text", "메뉴를 골라달라옹", false, false)
 	menuNamePlaceholder := slack.NewTextBlockObject("plain_text", "ex) 회전초밥 32pc", false, false)
@@ -41,7 +41,7 @@ func AddMenu(handler Handler, payload slack.InteractionCallback) {
 }
 
 // DeleteMenu handles when user clicks delete menu button
-func DeleteMenu(handler Handler, payload slack.InteractionCallback) {
+func DeleteMenu(handler *Handler, payload *slack.InteractionCallback) {
 	message := GetMessageFromTimeStamp(handler.Client, payload.Channel.ID, payload.Message.Timestamp)
 	menuBoard := ParseMenuBlocks(message.Blocks.BlockSet)
 
@@ -67,7 +67,7 @@ func DeleteMenu(handler Handler, payload slack.InteractionCallback) {
 }
 
 // OrderForOther handles when user clicks order for other button
-func OrderForOther(handler Handler, payload slack.InteractionCallback) {
+func OrderForOther(handler *Handler, payload *slack.InteractionCallback) {
 	message := GetMessageFromTimeStamp(handler.Client, payload.Channel.ID, payload.Message.Timestamp)
 	menuBoard := ParseMenuBlocks(message.Blocks.BlockSet)
 
@@ -98,7 +98,7 @@ func OrderForOther(handler Handler, payload slack.InteractionCallback) {
 }
 
 // TerminateMenu handles when user clicks terminate button
-func TerminateMenu(handler Handler, payload slack.InteractionCallback) {
+func TerminateMenu(handler *Handler, payload *slack.InteractionCallback) {
 	messageUpdateMutex.Lock()
 	defer messageUpdateMutex.Unlock()
 
@@ -123,12 +123,12 @@ func TerminateMenu(handler Handler, payload slack.InteractionCallback) {
 }
 
 // SelectMenuByUser handles when user select a menu
-func SelectMenuByUser(handler Handler, payload slack.InteractionCallback, selectedMenuName string) {
+func SelectMenuByUser(handler *Handler, payload *slack.InteractionCallback, selectedMenuName string) {
 	ToggleMenuOfUser(handler.Client, payload.User.ID, payload.Channel.ID, payload.Message.Timestamp, selectedMenuName)
 }
 
 // SubmitMenuAdd handles when user submit menu add view
-func SubmitMenuAdd(handler Handler, payload slack.InteractionCallback) {
+func SubmitMenuAdd(handler *Handler, payload *slack.InteractionCallback) {
 	channel, originalPostTimeStamp := ParseCallbackMetadata(payload.View.PrivateMetadata)
 
 	messageUpdateMutex.Lock()
@@ -149,7 +149,7 @@ func SubmitMenuAdd(handler Handler, payload slack.InteractionCallback) {
 }
 
 // SubmitOrderForOther handles when user submit order for other view
-func SubmitOrderForOther(handler Handler, payload slack.InteractionCallback) {
+func SubmitOrderForOther(handler *Handler, payload *slack.InteractionCallback) {
 	channel, originalPostTimeStamp := ParseCallbackMetadata(payload.View.PrivateMetadata)
 
 	messageUpdateMutex.Lock()
@@ -170,7 +170,7 @@ func SubmitOrderForOther(handler Handler, payload slack.InteractionCallback) {
 }
 
 // SubmitMenuDelete handles when user submit menu delete view
-func SubmitMenuDelete(handler Handler, payload slack.InteractionCallback) {
+func SubmitMenuDelete(handler *Handler, payload *slack.InteractionCallback) {
 	channel, originalPostTimeStamp := ParseCallbackMetadata(payload.View.PrivateMetadata)
 
 	messageUpdateMutex.Lock()

@@ -20,7 +20,7 @@ type Handler struct {
 }
 
 // HandleEvent is the function to handle events
-func (handler Handler) HandleEvent(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) HandleEvent(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -53,14 +53,14 @@ func (handler Handler) HandleEvent(w http.ResponseWriter, r *http.Request) {
 		innerEvent := eventsAPIEvent.InnerEvent
 		switch event := innerEvent.Data.(type) {
 		case *slackevents.AppMentionEvent:
-			HandleAppMentionEvent(event, handler)
+			go HandleAppMentionEvent(event, handler)
 		}
 	}
 
 }
 
 // HandleAction is the function to handle actions
-func (handler Handler) HandleAction(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) HandleAction(w http.ResponseWriter, r *http.Request) {
 	var payload slack.InteractionCallback
 	err := json.Unmarshal([]byte(r.FormValue("payload")), &payload)
 	if err != nil {
@@ -72,25 +72,25 @@ func (handler Handler) HandleAction(w http.ResponseWriter, r *http.Request) {
 		for _, blockAction := range payload.ActionCallback.BlockActions {
 			switch blockAction.ActionID {
 			case ids.AddMenu:
-				AddMenu(handler, payload)
+				go AddMenu(handler, &payload)
 			case ids.DeleteMenu:
-				DeleteMenu(handler, payload)
+				go DeleteMenu(handler, &payload)
 			case ids.OrderForOther:
-				OrderForOther(handler, payload)
+				go OrderForOther(handler, &payload)
 			case ids.TerminateMenu:
-				TerminateMenu(handler, payload)
+				go TerminateMenu(handler, &payload)
 			case ids.SelectMenuByUser:
-				SelectMenuByUser(handler, payload, blockAction.Value)
+				go SelectMenuByUser(handler, &payload, blockAction.Value)
 			}
 		}
 	case slack.InteractionTypeViewSubmission:
 		switch payload.View.CallbackID {
 		case ids.SubmitMenuCallback:
-			SubmitMenuAdd(handler, payload)
+			go SubmitMenuAdd(handler, &payload)
 		case ids.SubmitOrderForOtherCallback:
-			SubmitOrderForOther(handler, payload)
+			go SubmitOrderForOther(handler, &payload)
 		case ids.SubmitDeleteMenuCallback:
-			SubmitMenuDelete(handler, payload)
+			go SubmitMenuDelete(handler, &payload)
 		}
 
 	}
