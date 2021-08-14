@@ -117,3 +117,14 @@ func (mb *MenuBoard) ToBlocks() []slack.Block {
 	blocks = append(blocks, mb.TailBlocks...)
 	return blocks
 }
+
+// ToOptionBlockObjects make into slack option block object from menu names
+func (mb *MenuBoard) ToOptionBlockObjects() []*slack.OptionBlockObject {
+	menuOptions := []*slack.OptionBlockObject{}
+	for _, menu := range mb.Menus {
+		optionBlockText := slack.NewTextBlockObject("plain_text", menu.MenuName, false, false)
+		optionBlockObject := slack.NewOptionBlockObject(menu.MenuName, optionBlockText, nil)
+		menuOptions = append(menuOptions, optionBlockObject)
+	}
+	return menuOptions
+}

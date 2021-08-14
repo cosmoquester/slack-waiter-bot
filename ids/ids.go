@@ -7,6 +7,7 @@ const (
 	SubmitMenuPeople = "submit_menu_people"
 	AddMenu          = "add_menu"
 	DeleteMenu       = "delete_menu"
+	OrderForOther    = "order_for_other"
 	TerminateMenu    = "terminate_menu"
 )
 
@@ -21,6 +22,7 @@ const (
 
 // Callback IDs
 const (
-	SubmitMenuCallback       = "submit_menu_callback"
-	SubmitDeleteMenuCallback = "submit_delete_menu_callback"
+	SubmitMenuCallback          = "submit_menu_callback"
+	SubmitDeleteMenuCallback    = "submit_delete_menu_callback"
+	SubmitOrderForOtherCallback = "submit_order_for_other_callback"
 )

@@ -30,10 +30,12 @@ func HandleAppMentionEvent(handler *slackevents.AppMentionEvent, eh Handler) {
 	addMenuBtn := slack.NewButtonBlockElement(ids.AddMenu, ids.AddMenu, addMenuBtnTxt)
 	deleteMenuBtnTxt := slack.NewTextBlockObject("plain_text", "➖", false, false)
 	deleteMenuBtn := slack.NewButtonBlockElement(ids.DeleteMenu, ids.DeleteMenu, deleteMenuBtnTxt)
+	OrderForOtherBtnTxt := slack.NewTextBlockObject("plain_text", "👥", false, false)
+	OrderForOtherBtn := slack.NewButtonBlockElement(ids.OrderForOther, ids.OrderForOther, OrderForOtherBtnTxt)
 	terminateBtnTxt := slack.NewTextBlockObject("plain_text", "🚫", false, false)
 	terminateBtn := slack.NewButtonBlockElement(ids.TerminateMenu, ids.TerminateMenu, terminateBtnTxt).WithStyle(slack.StyleDanger)
 
-	ButtonBlock := slack.NewActionBlock(ids.MenuButtonsBlock, addMenuBtn, deleteMenuBtn, terminateBtn)
+	ButtonBlock := slack.NewActionBlock(ids.MenuButtonsBlock, addMenuBtn, deleteMenuBtn, OrderForOtherBtn, terminateBtn)
 
 	eh.Client.PostMessage(handler.Channel, slack.MsgOptionBlocks(headerBlock, slack.NewDividerBlock(), ButtonBlock), slack.MsgOptionTS(timeStamp))
 }
