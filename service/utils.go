@@ -50,6 +50,17 @@ func GetEmojiList(client *slack.Client) ([]string, error) {
 	return emojiList, nil
 }
 
+// GetMessageFromTimeStamp retrieve slack message using channel and timestamp
+func GetMessageFromTimeStamp(client *slack.Client, channelID string, timestamp string) *slack.Message {
+	messages, _, _, _ := client.GetConversationReplies(&slack.GetConversationRepliesParameters{ChannelID: channelID, Timestamp: timestamp})
+	for _, message := range messages {
+		if message.Timestamp == timestamp {
+			return &message
+		}
+	}
+	return nil
+}
+
 // WriteCallbackMetadata returns private metadata for add menu view
 func WriteCallbackMetadata(channelID string, timestamp string) string {
 	return fmt.Sprintf("%s\t%s", channelID, timestamp)
