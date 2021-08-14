@@ -41,7 +41,7 @@ func ParseMenuBlocks(blocks []slack.Block) *MenuBoard {
 		switch menuBlock := menuBlock.(type) {
 		case *slack.SectionBlock:
 			if menuSelectBlock != nil {
-				menuName := strings.TrimRight(strings.TrimLeft(statusBlocks[0].BlockID, ids.MenuSelectContextBlock), "/0")
+				menuName := strings.TrimSuffix(strings.TrimPrefix(statusBlocks[0].BlockID, ids.MenuSelectContextBlock), "/0")
 				menus = append(menus, Menu{
 					MenuName:        menuName,
 					MenuSelectBlock: menuSelectBlock,
@@ -58,7 +58,7 @@ func ParseMenuBlocks(blocks []slack.Block) *MenuBoard {
 	}
 
 	if menuSelectBlock != nil {
-		menuName := strings.TrimRight(strings.TrimLeft(statusBlocks[0].BlockID, ids.MenuSelectContextBlock), "/0")
+		menuName := strings.TrimSuffix(strings.TrimPrefix(statusBlocks[0].BlockID, ids.MenuSelectContextBlock), "/0")
 		menus = append(menus, Menu{
 			MenuName:        menuName,
 			MenuSelectBlock: menuSelectBlock,
