@@ -115,11 +115,7 @@ func (mb *MenuBoard) ToggleMenuByUser(profile *slack.UserProfile, menuName strin
 	for i, statusBlock := range statusBlocks {
 		elements := statusBlock.ContextElements.Elements
 		for j, curElement := range elements {
-			curElement, ok := curElement.(*slack.ImageBlockElement)
-			if !ok {
-				continue
-			}
-			if curElement.AltText == profile.RealName {
+			if curElement, ok := curElement.(*slack.ImageBlockElement); ok && curElement.AltText == profile.RealName {
 				statusBlock.ContextElements.Elements = append(elements[:j], elements[j+1:]...)
 				isExist = true
 				break
@@ -127,9 +123,8 @@ func (mb *MenuBoard) ToggleMenuByUser(profile *slack.UserProfile, menuName strin
 		}
 		if isExist {
 			for j := i + 1; j < len(statusBlocks); j++ {
-				prevElements := statusBlocks[j-1].ContextElements.Elements
 				curElements := statusBlocks[j].ContextElements.Elements
-				prevElements[len(prevElements)-1] = curElements[0]
+				statusBlocks[j-1].ContextElements.Elements = append(statusBlocks[j-1].ContextElements.Elements, curElements[0])
 				statusBlocks[j].ContextElements.Elements = curElements[1:]
 			}
 			if len(statusBlocks[len(statusBlocks)-1].ContextElements.Elements) == 0 {

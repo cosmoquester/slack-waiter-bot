@@ -124,7 +124,15 @@ func TerminateMenu(handler *Handler, payload *slack.InteractionCallback) {
 
 // SelectMenuByUser handles when user select a menu
 func SelectMenuByUser(handler *Handler, payload *slack.InteractionCallback, selectedMenuName string) {
-	ToggleMenuOfUser(handler.Client, payload.User.ID, payload.Channel.ID, payload.Message.Timestamp, selectedMenuName)
+	profile, _ := handler.Client.GetUserProfile(&slack.GetUserProfileParameters{UserID: payload.User.ID})
+
+	messageUpdateMutex.Lock()
+	defer messageUpdateMutex.Unlock()
+
+	message := GetMessageFromTimeStamp(handler.Client, payload.Channel.ID, payload.Message.Timestamp)
+	menuBoard := ParseMenuBlocks(message.Blocks.BlockSet)
+	menuBoard.ToggleMenuByUser(profile, selectedMenuName)
+	handler.Client.UpdateMessage(payload.Channel.ID, message.Timestamp, slack.MsgOptionBlocks(menuBoard.ToBlocks()...))
 }
 
 // SubmitMenuAdd handles when user submit menu add view
@@ -182,17 +190,4 @@ func SubmitMenuDelete(handler *Handler, payload *slack.InteractionCallback) {
 	menuBoard.DeleteMenu(menuName)
 
 	handler.Client.UpdateMessage(channel, originalPostTimeStamp, slack.MsgOptionBlocks(menuBoard.ToBlocks()...))
-}
-
-// ToggleMenuOfUser select or de-select menu of the user
-func ToggleMenuOfUser(client *slack.Client, userID string, channelID string, TimeStamp string, selectedMenuName string) {
-	profile, _ := client.GetUserProfile(&slack.GetUserProfileParameters{UserID: userID})
-
-	messageUpdateMutex.Lock()
-	defer messageUpdateMutex.Unlock()
-
-	message := GetMessageFromTimeStamp(client, channelID, TimeStamp)
-	menuBoard := ParseMenuBlocks(message.Blocks.BlockSet)
-	menuBoard.ToggleMenuByUser(profile, selectedMenuName)
-	client.UpdateMessage(channelID, message.Timestamp, slack.MsgOptionBlocks(menuBoard.ToBlocks()...))
 }
