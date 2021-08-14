@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"slack-waiter-bot/ids"
+	"strings"
 
 	"github.com/slack-go/slack"
 )
@@ -14,7 +15,7 @@ const numTailBlocks = 2
 type Menu struct {
 	MenuName        string
 	MenuSelectBlock *slack.SectionBlock
-	StatusBlock     *slack.ContextBlock
+	StatusBlocks    []*slack.ContextBlock
 }
 
 // MenuBoard is menu board blocks containing header, menus, tail
@@ -34,15 +35,36 @@ func ParseMenuBlocks(blocks []slack.Block) *MenuBoard {
 
 	menus := []Menu{}
 	menuNameIndexMap := map[string]int{}
-	for i := 0; i < len(menuBlocks); i += 2 {
-		menuSelectBlock := menuBlocks[i].(*slack.SectionBlock)
-		statusBlock := menuBlocks[i+1].(*slack.ContextBlock)
-		menuName := statusBlock.BlockID[len(ids.MenuSelectContextBlock):]
+	var menuSelectBlock *slack.SectionBlock
+	var statusBlocks []*slack.ContextBlock
+	for _, menuBlock := range menuBlocks {
+		switch menuBlock := menuBlock.(type) {
+		case *slack.SectionBlock:
+			if menuSelectBlock != nil {
+				menuName := strings.TrimRight(strings.TrimLeft(statusBlocks[0].BlockID, ids.MenuSelectContextBlock), "/0")
+				menus = append(menus, Menu{
+					MenuName:        menuName,
+					MenuSelectBlock: menuSelectBlock,
+					StatusBlocks:    statusBlocks,
+				})
+				menuNameIndexMap[menuName] = len(menuNameIndexMap)
+			}
+			menuSelectBlock = menuBlock
+			statusBlocks = []*slack.ContextBlock{}
+
+		case *slack.ContextBlock:
+			statusBlocks = append(statusBlocks, menuBlock)
+		}
+	}
+
+	if menuSelectBlock != nil {
+		menuName := strings.TrimRight(strings.TrimLeft(statusBlocks[0].BlockID, ids.MenuSelectContextBlock), "/0")
 		menus = append(menus, Menu{
 			MenuName:        menuName,
 			MenuSelectBlock: menuSelectBlock,
-			StatusBlock:     statusBlock})
-		menuNameIndexMap[menuName] = i / 2
+			StatusBlocks:    statusBlocks,
+		})
+		menuNameIndexMap[menuName] = len(menuNameIndexMap)
 	}
 
 	return &MenuBoard{
@@ -58,11 +80,11 @@ func (mb *MenuBoard) AddMenu(menuName string, emoji string) {
 	menuText := slack.NewTextBlockObject("plain_text", emoji+menuName, true, false)
 	selectText := slack.NewTextBlockObject("plain_text", "👆", false, false)
 	menuUserSelectBlock := slack.NewSectionBlock(menuText, nil, slack.NewAccessory(slack.NewButtonBlockElement(ids.SelectMenuByUser, menuName, selectText)))
-	menuSelectContextBlock := slack.NewContextBlock(ids.MenuSelectContextBlock+menuName, slack.NewTextBlockObject("plain_text", "0 Selected", false, false))
+	menuSelectContextBlock := slack.NewContextBlock(ids.MenuSelectContextBlock+menuName+"/0", slack.NewTextBlockObject("plain_text", "0 Selected", false, false))
 	mb.Menus = append(mb.Menus, Menu{
 		MenuName:        menuName,
 		MenuSelectBlock: menuUserSelectBlock,
-		StatusBlock:     menuSelectContextBlock,
+		StatusBlocks:    []*slack.ContextBlock{menuSelectContextBlock},
 	})
 	mb.MenuNameIndexMap[menuName] = len(mb.MenuNameIndexMap)
 }
@@ -86,24 +108,54 @@ func (mb *MenuBoard) DeleteMenu(menuName string) {
 
 // ToggleMenuByUser select or unselect menu
 func (mb *MenuBoard) ToggleMenuByUser(profile *slack.UserProfile, menuName string) {
-	statusBock := mb.Menus[mb.MenuNameIndexMap[menuName]].StatusBlock
-	elements := statusBock.ContextElements.Elements
-	elements = elements[:len(elements)-1]
+	menuIndex := mb.MenuNameIndexMap[menuName]
+	statusBlocks := mb.Menus[menuIndex].StatusBlocks
 
 	isExist := false
-	for i, curElement := range elements {
-		if curElement.(*slack.ImageBlockElement).AltText == profile.RealName {
-			elements = append(elements[:i], elements[i+1:]...)
-			isExist = true
+	for i, statusBlock := range statusBlocks {
+		elements := statusBlock.ContextElements.Elements
+		for j, curElement := range elements {
+			curElement, ok := curElement.(*slack.ImageBlockElement)
+			if !ok {
+				continue
+			}
+			if curElement.AltText == profile.RealName {
+				statusBlock.ContextElements.Elements = append(elements[:j], elements[j+1:]...)
+				isExist = true
+				break
+			}
+		}
+		if isExist {
+			for j := i + 1; j < len(statusBlocks); j++ {
+				prevElements := statusBlocks[j-1].ContextElements.Elements
+				curElements := statusBlocks[j].ContextElements.Elements
+				prevElements[len(prevElements)-1] = curElements[0]
+				statusBlocks[j].ContextElements.Elements = curElements[1:]
+			}
 			break
 		}
 	}
+
+	lastElements := statusBlocks[len(statusBlocks)-1].ContextElements.Elements
+	lastElements = lastElements[:len(lastElements)-1]
 	if !isExist {
-		elements = append(elements, slack.NewImageBlockElement(profile.Image32, profile.RealName))
+		lastElements = append(lastElements, slack.NewImageBlockElement(profile.Image32, profile.RealName))
 	}
 
-	elements = append(elements, slack.NewTextBlockObject("plain_text", fmt.Sprintf("%d Selected", len(elements)), false, false))
-	mb.Menus[mb.MenuNameIndexMap[menuName]].StatusBlock = slack.NewContextBlock(statusBock.BlockID, elements...)
+	if len(lastElements) == 10 {
+		newStatusBlock := slack.NewContextBlock(fmt.Sprintf("%s/%s/%d", ids.MenuSelectContextBlock, menuName, len(statusBlocks)))
+		statusBlocks = append(statusBlocks, newStatusBlock)
+		lastElements = newStatusBlock.ContextElements.Elements
+	}
+
+	selectedDescription := slack.NewTextBlockObject("plain_text", fmt.Sprintf("%d Selected", 10*(len(statusBlocks)-1)+len(lastElements)), false, false)
+	statusBlocks[len(statusBlocks)-1].ContextElements.Elements = append(lastElements, selectedDescription)
+
+	newStatusBlocks := []*slack.ContextBlock{}
+	for _, statusBlock := range statusBlocks {
+		newStatusBlocks = append(newStatusBlocks, slack.NewContextBlock(statusBlock.BlockID, statusBlock.ContextElements.Elements...))
+	}
+	mb.Menus[mb.MenuNameIndexMap[menuName]].StatusBlocks = newStatusBlocks
 }
 
 // ToBlocks make into blocks
@@ -112,7 +164,10 @@ func (mb *MenuBoard) ToBlocks() []slack.Block {
 	blocks = append(blocks, mb.HeaderBlocks...)
 
 	for _, menu := range mb.Menus {
-		blocks = append(blocks, menu.MenuSelectBlock, menu.StatusBlock)
+		blocks = append(blocks, menu.MenuSelectBlock)
+		for _, statusBlock := range menu.StatusBlocks {
+			blocks = append(blocks, statusBlock)
+		}
 	}
 	blocks = append(blocks, mb.TailBlocks...)
 	return blocks
