@@ -12,6 +12,7 @@ This is WaiterBot Server which is go study project in ScatterLab.
 $ docker run \
     -e SLACK_SIGNING_SECRET=somtehin124singnssecret \
     -e SLACK_BOT_USER_TOKEN=xoxb-123124412-1231231231231-dsfapodfjasdi \
+    -p 8080:8080 \
     cosmoquester/slack-waiter-bot
 ```
 

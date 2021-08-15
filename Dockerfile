@@ -15,11 +15,14 @@ COPY . .
 # Build
 RUN go build -o slack-waiter-bot .
 
-FROM golang:1.16.5-alpine
+FROM scratch
 
 WORKDIR /app
 
 # Use only compiled binary
 COPY --from=builder /build/slack-waiter-bot .
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+EXPOSE 8080
 
 ENTRYPOINT [ "./slack-waiter-bot" ]

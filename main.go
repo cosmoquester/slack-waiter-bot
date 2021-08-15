@@ -38,5 +38,5 @@ func main() {
 	http.HandleFunc("/actions", handler.HandleAction)
 
 	fmt.Println("[INFO] Server listening")
-	http.ListenAndServe(":3000", nil)
+	http.ListenAndServe(":8080", nil)
 }
