@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"slack-waiter-bot/service"
@@ -11,18 +11,19 @@ import (
 )
 
 func main() {
+	logger := log.New(os.Stdout, "", log.LstdFlags)
+
 	// "Bot User OAuth Access Token" which starts with "xoxb-"
 	slackBotToken := os.Getenv("SLACK_BOT_USER_TOKEN")
 	signingSecret := os.Getenv("SLACK_SIGNING_SECRET")
 
 	client, botUserID, err := service.AuthorizeSlack(slackBotToken)
 	if err != nil {
-		_ = fmt.Errorf("INVALID TOKEN ERROR")
-		return
+		logger.Fatal("[FATAL] INVALID TOKEN ERROR")
 	}
 	emojiList, err := service.GetEmojiList(client)
 	if err != nil {
-		_ = fmt.Errorf("INVALID EMOTION PERMISSION")
+		logger.Fatal("[FATAL] INVALID EMOTION PERMISSION")
 	}
 
 	rand.Seed(time.Now().Unix())
@@ -32,11 +33,12 @@ func main() {
 		SigningSecret: signingSecret,
 		BotUserID:     botUserID,
 		EmojiList:     emojiList,
+		Logger:        logger,
 	}
 
 	http.HandleFunc("/events", handler.HandleEvent)
 	http.HandleFunc("/actions", handler.HandleAction)
 
-	fmt.Println("[INFO] Server listening")
+	logger.Println("[INFO] Server listening")
 	http.ListenAndServe(":8080", nil)
 }
