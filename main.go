@@ -36,6 +36,7 @@ func main() {
 		Logger:        logger,
 	}
 
+	http.HandleFunc("/status", handler.HandleStatus)
 	http.HandleFunc("/events", handler.HandleEvent)
 	http.HandleFunc("/actions", handler.HandleAction)
 

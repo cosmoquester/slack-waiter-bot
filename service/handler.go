@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"slack-waiter-bot/ids"
+	"time"
 
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -19,6 +20,13 @@ type Handler struct {
 	BotUserID     string
 	EmojiList     []string
 	Logger        *log.Logger
+}
+
+// HandleStatus is the function to handle status api
+func (handler *Handler) HandleStatus(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "time": time.Now().Local().String()})
 }
 
 // HandleEvent is the function to handle events
