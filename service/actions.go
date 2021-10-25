@@ -1,8 +1,10 @@
 package service
 
 import (
+	"fmt"
 	"math/rand"
 	"slack-waiter-bot/ids"
+	"strings"
 	"sync"
 
 	"github.com/slack-go/slack"
@@ -103,6 +105,8 @@ func TerminateMenu(handler *Handler, payload *slack.InteractionCallback) {
 	defer messageUpdateMutex.Unlock()
 
 	message := GetMessageFromTimeStamp(handler.Client, payload.Channel.ID, payload.Message.Timestamp)
+	menuBoard := ParseMenuBlocks(message.Blocks.BlockSet)
+
 	if message.ParentUserId != payload.User.ID {
 		return
 	}
@@ -118,8 +122,16 @@ func TerminateMenu(handler *Handler, payload *slack.InteractionCallback) {
 			blocks = append(blocks, curBlock)
 		}
 	}
-	handler.Client.UpdateMessage(payload.Channel.ID, message.Timestamp, slack.MsgOptionBlocks(blocks...))
 
+	summary := ""
+	for _, menu := range menuBoard.Menus {
+		choosers := menu.GetChoosers()
+		summary += fmt.Sprintf("*%s*\n>", menu.MenuName)
+		summary += "`" + strings.Join(choosers, "` `") + "`\n"
+	}
+
+	blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", summary, false, false), nil, nil))
+	handler.Client.UpdateMessage(payload.Channel.ID, message.Timestamp, slack.MsgOptionBlocks(blocks...))
 }
 
 // SelectMenuByUser handles when user select a menu
