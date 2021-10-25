@@ -75,6 +75,21 @@ func ParseMenuBlocks(blocks []slack.Block) *MenuBoard {
 	}
 }
 
+// GetChoosers returns all persons who chose this menu
+func (m *Menu) GetChoosers() []string {
+	choosers := []string{}
+
+	for _, statusBlock := range m.StatusBlocks {
+		elements := statusBlock.ContextElements.Elements
+		for _, curElement := range elements {
+			if curElement, ok := curElement.(*slack.ImageBlockElement); ok {
+				choosers = append(choosers, curElement.AltText)
+			}
+		}
+	}
+	return choosers
+}
+
 // AddMenu adds the menu
 func (mb *MenuBoard) AddMenu(menuName string, emoji string) {
 	menuText := slack.NewTextBlockObject("plain_text", emoji+menuName, true, false)
