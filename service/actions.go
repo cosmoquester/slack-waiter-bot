@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"math/rand"
 	"slack-waiter-bot/ids"
 	"strings"
 	"sync"
@@ -157,7 +156,8 @@ func SubmitMenuAdd(handler *Handler, payload *slack.InteractionCallback) {
 	message := GetMessageFromTimeStamp(handler.Client, channel, originalPostTimeStamp)
 	menuName := payload.View.State.Values[ids.SubmitMenuInputBlock][ids.SubmitMenuInput].Value
 	menuBoard := ParseMenuBlocks(message.Blocks.BlockSet)
-	menuBoard.AddMenu(menuName, handler.EmojiList[rand.Intn(len(handler.EmojiList))])
+	emoji, _ := handler.EmojiManager.GetRandomEmoji()
+	menuBoard.AddMenu(menuName, emoji)
 
 	// Select default selected users
 	selectedUsers := payload.View.State.Values[ids.SubmitMenuSelectPeopleBlock][ids.SubmitMenuPeople].SelectedUsers
