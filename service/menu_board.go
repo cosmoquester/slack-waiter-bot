@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"html"
 	"slack-waiter-bot/ids"
 	"strings"
 
@@ -40,6 +41,7 @@ func ParseMenuBlocks(blocks []slack.Block) *MenuBoard {
 	for _, menuBlock := range menuBlocks {
 		switch menuBlock := menuBlock.(type) {
 		case *slack.SectionBlock:
+			menuBlock.Text.Text = html.UnescapeString(menuBlock.Text.Text)
 			if menuSelectBlock != nil {
 				menuName := strings.TrimSuffix(strings.TrimPrefix(statusBlocks[0].BlockID, ids.MenuSelectContextBlock), "/0")
 				menus = append(menus, Menu{
