@@ -21,8 +21,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("[FATAL] INVALID TOKEN ERROR")
 	}
-	emojiList, err := service.GetEmojiList(client)
-	if err != nil {
+
+	emojiManager := &service.EmojiManager{
+		Client: client,
+	}
+	if err := emojiManager.UpdateEmojiList(); err != nil {
 		logger.Fatal("[FATAL] INVALID EMOTION PERMISSION")
 	}
 
@@ -32,7 +35,7 @@ func main() {
 		Client:        client,
 		SigningSecret: signingSecret,
 		BotUserID:     botUserID,
-		EmojiList:     emojiList,
+		EmojiManager:  emojiManager,
 		Logger:        logger,
 	}
 

@@ -18,7 +18,7 @@ type Handler struct {
 	Client        *slack.Client
 	SigningSecret string
 	BotUserID     string
-	EmojiList     []string
+	EmojiManager  *EmojiManager
 	Logger        *log.Logger
 }
 
