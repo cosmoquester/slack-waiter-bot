@@ -18,6 +18,7 @@ const (
 	SubmitMenuSelectPeopleBlock = "submit_menu_select_people_block"
 	MenuButtonsBlock            = "menu_buttons_block"
 	MenuSelectContextBlock      = "menu_select_context_block/"
+	QuoteBlock                  = "quote_block"
 )
 
 // Callback IDs

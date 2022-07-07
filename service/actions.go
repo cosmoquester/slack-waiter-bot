@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"math/rand"
 	"slack-waiter-bot/ids"
 	"strings"
 	"sync"
@@ -128,8 +129,11 @@ func TerminateMenu(handler *Handler, payload *slack.InteractionCallback) {
 		summary += fmt.Sprintf("*%s*\n>", menu.MenuName)
 		summary += "`" + strings.Join(choosers, "` `") + "`\n"
 	}
-
 	blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", summary, false, false), nil, nil))
+
+	quote := Quotes[rand.Intn(len(Quotes))]
+	blocks = append(blocks, slack.NewDividerBlock(), slack.NewContextBlock(ids.QuoteBlock, slack.NewTextBlockObject("plain_text", quote, false, false)))
+
 	handler.Client.UpdateMessage(payload.Channel.ID, message.Timestamp, slack.MsgOptionBlocks(blocks...))
 }
 
