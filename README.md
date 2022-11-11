@@ -22,6 +22,7 @@ $ docker run \
 
 - Interactivity & Shortcuts Request URL: http://[SERVER-URI]/actions
 - Event Subscriptions Request URL: http://[SERVER-URI]/events
+  - The app should subscribe `app_mention` event
 
 ### Add permissions below to Bot Token Scopes
 
@@ -35,3 +36,39 @@ $ docker run \
 - im:write
 - mpim:history
 - users.profile:read
+
+## App Manifest
+
+```yaml
+display_information:
+  name: Waiter Bot
+features:
+  bot_user:
+    display_name: Waiter Bot
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - channels:history
+      - chat:write
+      - chat:write.public
+      - conversations.connect:write
+      - emoji:read
+      - groups:history
+      - im:history
+      - im:write
+      - mpim:history
+      - users.profile:read
+      - app_mentions:read
+settings:
+  event_subscriptions:
+    request_url: <<SERVER_ADDRESS_PORT>>/events
+    bot_events:
+      - app_mention
+  interactivity:
+    is_enabled: true
+    request_url: <<SERVER_ADDRESS_PORT>>/actions
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+```
